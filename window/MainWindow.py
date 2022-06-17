@@ -1,6 +1,8 @@
 from PyQt6.QtWidgets import QMainWindow, QPushButton, QWidget, QLabel, QHBoxLayout, QVBoxLayout
-from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtGui import QPixmap, QGuiApplication
+from PyQt6.QtCore import QSize, Qt, QTimer
+import keyboard
+from queue import LifoQueue
 
 from utils import VisibleThread, Monitor
 from . import BrightnessWindow
@@ -28,11 +30,11 @@ class MonitorWidget(QWidget):
 
 class MainWindow(QMainWindow):
 
-    def __init__(self) -> None:
+    def __init__(self, screens) -> None:
         super().__init__()
         self.visible = 0
         self.child_windows = {}
-        
+        self.screens = screens
         self.setMinimumSize(QSize(600, 400))
         layout = QHBoxLayout()
         self._list_monitors = Monitor.get_list_monitors()
@@ -45,24 +47,33 @@ class MainWindow(QMainWindow):
         """)
         self.window.setLayout(layout)
         self.alt_on_pressed = False
-
-
-        # self.button = QPushButton("Push for Window")
-        # self.button.clicked.connect(self.show_new_window)
-       
+        self.child_windows['BrightnessWindow'] = [BrightnessWindow(elem,i) for i, elem in enumerate(self._list_monitors)]
+        #
         self.setCentralWidget(self.window)
+        self._stack_keys = LifoQueue()
+        self._timer_stack = QTimer()
+        self._timer_stack.timeout.connect(self._stack_to_func)
+        self._timer_stack.start(10)
+        keyboard.add_hotkey('alt+8', lambda: self._stack_keys.put(0), suppress = True)
+        keyboard.add_hotkey('alt+2', lambda: self._stack_keys.put(1), suppress= True)
 
-    def show_new_window(self, checked) -> None:
-        self.threads = []
-        if 'BrightnessWindow' not in self.child_windows:
-            self.child_windows['BrightnessWindow'] = BrightnessWindow(self._list_monitors)
-            # visible_thread = VisibleThread('BrightnessWindow', self.child_windows)
-            # self.threads.append(visible_thread)
-            # visible_thread.start()
-            self.child_windows['BrightnessWindow'].show()
-        else:
-            self.child_windows['BrightnessWindow'].start_hide()
 
-    def keyPressEvent(self, e):
-        
-        print(e.key)
+    def _stack_to_func(self):
+        if not self._stack_keys.empty():
+            if self._stack_keys.get() == 0:
+                self._brightness_up()
+            else:
+                self._brightness_down()
+
+
+    def _brightness_up(self):
+        for slider in self.child_windows['BrightnessWindow']:
+            slider.monitor.up_brightness()
+        for slider in self.child_windows['BrightnessWindow']:
+            slider.update()
+
+    def _brightness_down(self):
+        for slider in self.child_windows['BrightnessWindow']:
+            slider.monitor.down_brightness()
+        for slider in self.child_windows['BrightnessWindow']:
+            slider.update()

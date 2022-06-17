@@ -2,30 +2,27 @@ from time import sleep
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget, QSlider
 from PyQt6.QtCore import QSize, Qt, QTimer
 from random import randint
+from utils import Monitor
 
 
 class BrightnessWindow(QWidget):
-    """
-    This "window" is a QWidget. If it has no parent, it
-    will appear as a free-floating window as we want.
-    """
-    def __init__(self, list_monitors: list):
+    
+    def __init__(self, monitor: Monitor, n):
         super().__init__()
-        self.list_monitors = list_monitors
+        self.monitor = monitor
         self.visible = 1
         self.updated = True
         self.ready_update = True
         self.setStyleSheet("background-color: #1A1A1A; color: white; ")
-        self.setFixedSize(QSize(65, 140))
-        self.setGeometry(50, 60, 0, 0)
+        self.setFixedSize(QSize(45, 140))
+        self.setGeometry(50+n*45, 60, 0, 0)
         self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint)
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint)
         self.setWindowFlag(Qt.WindowType.Tool)
-        self.timer_hide = QTimer.singleShot(2000, self.start_animation)
-        self.timer_animation = QTimer()
-        self.timer_animation.timeout.connect(self.hide_animation)
-
-
+        self._timer_hide = None
+        self._timer_animation = QTimer()
+        self._change_visible = False
+        self._timer_animation.timeout.connect(self._hide_animation)
         layout = QVBoxLayout()
         self.slider = QSlider()
         self.slider.setGeometry(40, 0, 0, 0)
@@ -51,12 +48,11 @@ class BrightnessWindow(QWidget):
             background: #6A6A6A;
         }
         """)
-        i = randint(0, 100)
         self.slider.setRange(0, 100)
-        self.slider.setValue(i)
+        self.slider.setValue(0)
         self.slider.valueChanged.connect(self._slider_change)
         layout.addWidget(self.slider)
-        self.label = QLabel(str(i))
+        self.label = QLabel('0')
         self.label.setStyleSheet("""font-family: "Segoe UI";
                                     font-size: 13px;
                                     margin-bottom:5px;
@@ -65,30 +61,42 @@ class BrightnessWindow(QWidget):
         layout.addWidget(self.label)
         layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.setLayout(layout)
+        self._timer_animation.start(10)
+        self.update()
+        
+
+    def update(self):
+        bri = int(self.monitor.brightness)
+        self.show()
+        self.label.setText(str(bri))
+        self.slider.setValue(bri)
+        self._start_hide = True
 
     def _slider_change(self, value):
+        self.monitor.set_brightness(value)
         self.label.setText(str(value))
-        # monitor = self.list_monitors[1]
-        # monitor.set_brightness(value)
-        self.start_hide()
-
-    def start_hide(self):
-        self.timer_animation.stop()
-        if self.timer_hide:
-            self.timer_hide.stop()
-            self.timer_hide.deleteLater()
-        self.visible = 1
-        self.setWindowOpacity(self.visible)
+        self._start_hide = True
         
-        self.timer_hide = QTimer.singleShot(2000, self.start_animation)
-
-    def start_animation(self):
-        self.timer_animation.start(10)
-
-    def hide_animation(self):
-        self.setWindowOpacity(self.visible)
-        self.visible -=0.01
-        if self.visible < 0:
-            self.timer_animation.stop()
+    def _hide_animation(self):
+        if self._start_hide:
+            self.visible = 1
+            self.setWindowOpacity(self.visible)
+            self._start_hide = False
+            self._change_visible = False
+            if self._timer_hide:
+                self._timer_hide.stop()
+                self._timer_hide.deleteLater()
+            self._timer_hide = QTimer.singleShot(4000, self._start_animation)
+        if self._change_visible:
+            if self.visible < 0:
+                self._change_visible = False
+                self.hide()
+            else:
+                self.setWindowOpacity(self.visible)
+                self.visible -=0.01
+            
+    def _start_animation(self):
+        self._change_visible = True
+        
 
         
