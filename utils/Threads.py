@@ -1,19 +1,15 @@
 from PyQt6.QtCore import QThread
 
 
-class VisibleThread(QThread):
-    def __init__(self, key_window: str, dict_window: dict):
+class WindowKeyBoardWorker(QThread):
+    def __init__(self, window):
         QThread.__init__(self)
-        self.key_window = key_window
-        self.dict_window = dict_window
-
+        self.window = window
     def run(self):
-        while self.dict_window[self.key_window].visible > 0:
-            if self.dict_window[self.key_window].updated:
-                self.sleep(2)
-                self.dict_window[self.key_window].updated = False
-            self.msleep(10)
-            _vis = self.dict_window[self.key_window].visible
-            self.dict_window[self.key_window].setWindowOpacity(_vis)
-            self.dict_window[self.key_window].visible -= 0.01
-        del self.dict_window[self.key_window]
+        while True:
+            key = self.window.stack_keys.get()
+            if key == 0:
+                self.window.brightness_up()
+            elif key == 1:
+                self.window.brightness_down()
+

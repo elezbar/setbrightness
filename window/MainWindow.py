@@ -1,10 +1,11 @@
-from PyQt6.QtWidgets import QMainWindow, QPushButton, QWidget, QLabel, QHBoxLayout, QVBoxLayout
-from PyQt6.QtGui import QPixmap, QGuiApplication
+from PyQt6.QtWidgets import QMainWindow, QMessageBox, QPushButton, QWidget, QLabel, QHBoxLayout, QVBoxLayout
+from PyQt6.QtGui import QAction, QPixmap, QGuiApplication
 from PyQt6.QtCore import QSize, Qt, QTimer
 import keyboard
 from queue import LifoQueue
 
-from utils import VisibleThread, Monitor
+
+from utils import WindowKeyBoardWorker, Monitor
 from . import BrightnessWindow
 
 class MonitorWidget(QWidget):
@@ -48,31 +49,29 @@ class MainWindow(QMainWindow):
         self.window.setLayout(layout)
         self.alt_on_pressed = False
         self.child_windows['BrightnessWindow'] = [BrightnessWindow(elem,i) for i, elem in enumerate(self._list_monitors)]
-        #
         self.setCentralWidget(self.window)
-        self._stack_keys = LifoQueue()
-        self._timer_stack = QTimer()
-        self._timer_stack.timeout.connect(self._stack_to_func)
-        self._timer_stack.start(10)
-        keyboard.add_hotkey('alt+8', lambda: self._stack_keys.put(0), suppress = True)
-        keyboard.add_hotkey('alt+2', lambda: self._stack_keys.put(1), suppress= True)
+        self.stack_keys = LifoQueue()
+        worker = WindowKeyBoardWorker(self)
+        worker.start()
+
+        quit = QAction("Quit", self)
+        quit.triggered.connect(self.closeEvent)
+
+        keyboard.add_hotkey('alt+2', lambda: self.stack_keys.put(1), suppress= True)
+        keyboard.add_hotkey('alt+8', lambda: self.stack_keys.put(0), suppress = True)
 
 
-    def _stack_to_func(self):
-        if not self._stack_keys.empty():
-            if self._stack_keys.get() == 0:
-                self._brightness_up()
-            else:
-                self._brightness_down()
+    def closeEvent(self, event):
+        event.ignore()
+        self.hide()
 
-
-    def _brightness_up(self):
+    def brightness_up(self):
         for slider in self.child_windows['BrightnessWindow']:
             slider.monitor.up_brightness()
         for slider in self.child_windows['BrightnessWindow']:
             slider.update()
 
-    def _brightness_down(self):
+    def brightness_down(self):
         for slider in self.child_windows['BrightnessWindow']:
             slider.monitor.down_brightness()
         for slider in self.child_windows['BrightnessWindow']:

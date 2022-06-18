@@ -1,2 +1,2 @@
-from .Threads import VisibleThread
+from .Threads import WindowKeyBoardWorker
 from .Monitor import Monitor
