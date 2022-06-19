@@ -10,6 +10,5 @@ if __name__ == '__main__':
     tray_icon = TrayIcon(QIcon("monitor.png"), w)
     tray_icon.setVisible(True)
     tray_icon.show()
-    w.show()
     app.exec()
     

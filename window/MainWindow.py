@@ -5,7 +5,7 @@ import keyboard
 from queue import LifoQueue
 
 
-from utils import WindowKeyBoardWorker, Monitor
+from utils import WindowKeyBoardWorker, Monitor, FlowLayout
 from . import BrightnessWindow
 
 class MonitorWidget(QWidget):
@@ -36,8 +36,8 @@ class MainWindow(QMainWindow):
         self.visible = 0
         self.child_windows = {}
         self.screens = screens
-        self.setMinimumSize(QSize(600, 400))
-        layout = QHBoxLayout()
+        self.setMinimumSize(QSize(150, 400))
+        layout = FlowLayout()
         self._list_monitors = Monitor.get_list_monitors()
         for mon in self._list_monitors:
             layout.addWidget(MonitorWidget(mon))

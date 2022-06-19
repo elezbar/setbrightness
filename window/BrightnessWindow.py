@@ -8,25 +8,17 @@ from utils import Monitor
 
 class BrightnessWindow(QMainWindow):
     
-    def __init__(self, monitor: Monitor, n):
+    def __init__(self, monitor: Monitor, number_window: int):
         super().__init__()
         self.monitor = monitor
-        self.visible = 1
         self.background = QWidget(self)
-
-        self.updated = True
-        self.ready_update = True
         self.background.setStyleSheet("background-color: #1A1A1A; color: white ")
         self.setFixedSize(QSize(45, 140))
-        self.setGeometry(50+n*45, 60, 0, 0)
+        self.setGeometry(50+number_window*45, 60, 0, 0)
         self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint)
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowFlag(Qt.WindowType.Tool)
-        self._timer_hide = None
-        self._timer_animation = QTimer()
-        self._change_visible = False
-        # self._timer_animation.timeout.connect(self._hide_animation)
         layout = QVBoxLayout()
         self.slider = QSlider()
         self.slider.setGeometry(100, 0, 0, 0)
@@ -41,7 +33,7 @@ class BrightnessWindow(QMainWindow):
         QSlider::handle:vertical {
             height: 11px;
             background: white;
-            margin: 0 0px; /* expand outside the groove */
+            margin: 0 0px;
         }
 
         QSlider::add-page:vertical {
@@ -78,13 +70,9 @@ class BrightnessWindow(QMainWindow):
         self._animation.setKeyValueAt(0.75,1.0)
         self._animation.setKeyValueAt(1,0.0)
         self._animation.setDirection(QAbstractAnimation.Direction.Forward)
-        # self._animation.finished.connect(lambda: self.hide())
         self.update()
-       
-        
 
-    def update(self):
-        # self.setWindowOpacity(self.visible)
+    def update(self) -> None:
         self.show()
         bri = int(self.monitor.brightness)
         self.label.setText(str(bri))
@@ -93,7 +81,7 @@ class BrightnessWindow(QMainWindow):
         self._animation.setCurrentTime(0)
         self._animation.start()
 
-    def _slider_change(self, value):
+    def _slider_change(self, value: int) -> None:
         self.monitor.set_brightness(value)
         self.label.setText(str(value))
         self._start_hide = True
